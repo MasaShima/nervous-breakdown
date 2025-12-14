@@ -13,6 +13,8 @@
       --card-mid: #1f2933;
       --accent: #34d399;
       --card-min: 110px;
+      --card-gap: 12px;
+      --card-aspect: 3 / 4;
     }
 
     body {
@@ -27,13 +29,13 @@
     .card-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr));
-      gap: 12px;
+      gap: var(--card-gap);
       width: 100%;
     }
 
     .card {
       position: relative;
-      aspect-ratio: 3 / 4;
+      aspect-ratio: var(--card-aspect);
       perspective: 1000px;
       cursor: pointer;
       transition: transform 0.2s ease, filter 0.2s ease;
@@ -66,7 +68,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
+      font-size: clamp(14px, 4vw, 24px);
       font-weight: bold;
       text-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
       overflow: hidden;
@@ -220,7 +222,7 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex justify-center py-6">
+<body class="min-h-screen flex justify-center py-3 sm:py-6">
   <div class="w-full max-w-5xl px-3">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
       <div>
@@ -266,8 +268,8 @@
       </div>
     </div>
 
-    <div id="playArea" class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-black p-5 shadow-xl transition-colors">
-      <div id="cardGrid" class="card-grid min-h-[400px]"></div>
+    <div id="playArea" class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-black p-3 sm:p-5 shadow-xl transition-colors">
+      <div id="cardGrid" class="card-grid"></div>
     </div>
 
     <div id="messageArea" class="mt-4 bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-sm min-h-[72px]"></div>
@@ -556,25 +558,38 @@
 
     function updateCardSizing() {
       const root = document.documentElement;
+      const w = window.innerWidth || 1024;
       let size = "110px";
-      if (pairCount > 16 && pairCount <= 20) {
-        size = "88px";
-      } else if (pairCount > 20) {
-        size = "76px";
+      let gap = "12px";
+      let aspect = "3 / 4";
+
+      if (pairCount > 20) {
+        size = w < 480 ? "48px" : w < 640 ? "58px" : "70px";
+        gap = w < 480 ? "5px" : w < 640 ? "7px" : "8px";
+        aspect = "3 / 3.4"; // height about 1.13x width to squeeze rows
+      } else if (pairCount > 16) {
+        size = w < 480 ? "64px" : "82px";
+        gap = w < 480 ? "7px" : "9px";
+        aspect = "3 / 3.6";
       } else if (pairCount > 12) {
         size = "95px";
+        gap = "10px";
       }
       root.style.setProperty("--card-min", size);
+      root.style.setProperty("--card-gap", gap);
+      root.style.setProperty("--card-aspect", aspect);
 
       const grid = document.getElementById("cardGrid");
       if (grid) {
-        grid.style.minHeight = pairCount > 16 ? "50vh" : "40vh";
+        grid.style.minHeight = "0";
       }
       const playArea = document.getElementById("playArea");
       if (playArea) {
-        playArea.style.minHeight = pairCount > 16 ? "70vh" : "55vh";
+        playArea.style.minHeight = "0";
       }
     }
+
+    window.addEventListener("resize", () => updateCardSizing());
 
     function startTimer() {
       startTime = Date.now();
