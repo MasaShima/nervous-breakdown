@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>神経衰弱ゲーム3</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>神経衰弱ゲーム3 (Mobile Fit)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap");
@@ -12,9 +12,19 @@
       --card-dark: #111827;
       --card-mid: #1f2933;
       --accent: #34d399;
-      --card-min: 110px;
-      --card-gap: 12px;
-      --card-aspect: 3 / 4;
+      --card-width: 60px;  /* JSで動的に上書きされます */
+      --card-height: 80px; /* JSで動的に上書きされます */
+      --gap: 8px;          /* JSで動的に上書きされます */
+      --cols: 4;           /* JSで動的に上書きされます */
+    }
+
+    /* iOSでのバウンススクロール防止 */
+    html, body {
+      height: 100dvh; /* Dynamic Viewport Height for iOS */
+      width: 100vw;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
     }
 
     body {
@@ -23,36 +33,49 @@
         radial-gradient(circle at 80% 0%, rgba(96, 165, 250, 0.1), transparent 28%),
         #0a0a0f;
       color: #e5e7eb;
-      overscroll-behavior: none;
     }
 
+    /* メインレイアウトコンテナ */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    /* グリッド設定 */
     .card-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr));
-      gap: var(--card-gap);
+      grid-template-columns: repeat(var(--cols), var(--card-width));
+      grid-template-rows: repeat(auto-fill, var(--card-height));
+      gap: var(--gap);
+      justify-content: center;
+      align-content: center;
       width: 100%;
+      height: 100%;
     }
 
     .card {
       position: relative;
-      aspect-ratio: var(--card-aspect);
+      width: var(--card-width);
+      height: var(--card-height);
       perspective: 1000px;
       cursor: pointer;
-      transition: transform 0.2s ease, filter 0.2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-      filter: brightness(1.05);
+      /* タップ時のハイライト無効化 */
+      -webkit-tap-highlight-color: transparent;
     }
 
     .card-inner {
       position: absolute;
       inset: 0;
-      transition: transform 0.45s ease;
+      transition: transform 0.3s ease; /* アニメーション時間を短縮 */
       transform-style: preserve-3d;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+      border-radius: max(4px, calc(var(--card-width) * 0.1));
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
     }
 
     .card.flipped .card-inner,
@@ -64,13 +87,13 @@
       position: absolute;
       inset: 0;
       backface-visibility: hidden;
-      border-radius: 12px;
+      border-radius: max(4px, calc(var(--card-width) * 0.1));
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(14px, 4vw, 24px);
+      font-size: calc(var(--card-width) * 0.5); /* 文字サイズも動的に */
       font-weight: bold;
-      text-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
       overflow: hidden;
     }
 
@@ -95,12 +118,12 @@
 
     .card.matched.p1-win .card-front {
       border-color: #22c55e;
-      box-shadow: 0 0 14px rgba(34, 197, 94, 0.8);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
     }
 
     .card.matched.p2-win .card-front {
       border-color: #60a5fa;
-      box-shadow: 0 0 14px rgba(96, 165, 250, 0.8);
+      box-shadow: 0 0 8px rgba(96, 165, 250, 0.8);
     }
 
     .card-face img {
@@ -113,88 +136,72 @@
       background: rgba(52, 211, 153, 0.15);
       border: 1px solid rgba(52, 211, 153, 0.35);
       color: #a7f3d0;
-      padding: 2px 8px;
+      padding: 0px 6px;
       border-radius: 9999px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
     }
 
+    /* モーダル */
     .modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.85);
       z-index: 100;
       justify-content: center;
       align-items: center;
       padding: 16px;
     }
-
-    .modal.active {
-      display: flex;
-    }
-
+    .modal.active { display: flex; }
     .modal-content {
       background: #1f2933;
       color: #e5e7eb;
-      padding: 20px;
+      padding: 16px;
       border-radius: 10px;
       max-width: 900px;
       width: 100%;
-      max-height: 90vh;
+      max-height: 90dvh;
       overflow-y: auto;
       border: 1px solid #334155;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
     }
 
     .config-item {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      margin-bottom: 8px;
       background: rgba(31, 41, 51, 0.6);
-      padding: 10px;
-      border-radius: 8px;
+      padding: 8px;
+      border-radius: 6px;
       border: 1px solid #2f3b4a;
-    }
-
-    .config-item > label {
-      font-size: 0.9rem;
-      color: #cbd5e1;
-    }
-
-    .config-group-title {
-      font-weight: 700;
-      margin-bottom: 6px;
-      font-size: 1rem;
     }
 
     .player-chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       background: rgba(52, 211, 153, 0.15);
       border: 1px solid rgba(52, 211, 153, 0.35);
       color: #a7f3d0;
-      padding: 4px 10px;
+      padding: 2px 8px;
       border-radius: 9999px;
       font-weight: 700;
-      font-size: 0.9rem;
-      transition: background 0.2s ease, transform 0.2s ease;
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
     }
-
     .player-chip.active {
       background: rgba(52, 211, 153, 0.35);
       color: #ecfdf3;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(52, 211, 153, 0.25);
+      box-shadow: 0 2px 8px rgba(52, 211, 153, 0.25);
     }
 
+    /* スライドメニュー */
     .menu-panel {
       position: fixed;
       right: 0;
       top: 0;
-      width: 340px;
-      max-width: 90vw;
-      height: 100vh;
+      width: 280px;
+      max-width: 80vw;
+      height: 100dvh;
       background: #0f172a;
       border-left: 1px solid #1f2937;
       box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
@@ -204,11 +211,7 @@
       transition: transform 0.25s ease;
       z-index: 60;
     }
-
-    .menu-panel.active {
-      transform: translateX(0);
-    }
-
+    .menu-panel.active { transform: translateX(0); }
     .menu-overlay {
       position: fixed;
       inset: 0;
@@ -216,135 +219,91 @@
       z-index: 50;
       display: none;
     }
-
-    .menu-overlay.active {
-      display: block;
-    }
+    .menu-overlay.active { display: block; }
   </style>
 </head>
-<body class="min-h-screen flex justify-center py-3 sm:py-6">
-  <div class="w-full max-w-5xl px-3">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-      <div>
-        <h1 class="text-2xl font-bold tracking-wide">神経衰弱</h1>
-        <p class="text-sm text-gray-400">画像はURLかアップロードで差し替えできます</p>
-      </div>
-      <div class="flex gap-2">
-        <button onclick="toggleMenu(true)" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded border border-slate-600 text-sm">メニュー</button>
-        <button onclick="openSettings()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded border border-slate-500 text-sm">画像設定</button>
+<body>
+  <div class="app-container">
+    <div class="flex items-center justify-between shrink-0 mb-2">
+      <h1 class="text-lg font-bold tracking-wide truncate mr-2">神経衰弱</h1>
+      <div class="flex gap-2 shrink-0">
+        <button onclick="toggleMenu(true)" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1 rounded border border-slate-600 text-xs">メニュー</button>
+        <button onclick="openSettings()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded border border-slate-500 text-xs">画像</button>
       </div>
     </div>
 
-    <div class="bg-slate-900/70 rounded-lg p-3 border border-slate-700 mb-4">
-      <div class="flex flex-wrap gap-3 items-center text-sm">
-        <div class="flex items-center gap-2">
-          <span class="text-gray-300">ターン</span>
-          <span id="currentPlayerLabel" class="player-chip active">プレイヤー1</span>
+    <div class="bg-slate-900/80 rounded-lg p-2 border border-slate-700 shrink-0 mb-2">
+      <div class="flex flex-wrap gap-x-3 gap-y-1 items-center justify-between text-xs sm:text-sm">
+        <div class="flex items-center gap-1">
+          <span id="currentPlayerLabel" class="player-chip active">P1の番</span>
         </div>
+        
         <div class="flex items-center gap-2">
-          <span id="player1Chip" class="player-chip active">P1</span>
-          <span id="player1Score" class="font-semibold">0</span>
+          <div class="flex items-center gap-1">
+            <span id="player1Chip" class="text-xs text-emerald-400 font-bold">P1</span>
+            <span id="player1Score" class="font-mono text-white text-base">0</span>
+          </div>
+          <span class="text-gray-600">|</span>
+          <div class="flex items-center gap-1">
+            <span id="player2Chip" class="text-xs text-blue-400 font-bold">P2</span>
+            <span id="player2Score" class="font-mono text-white text-base">0</span>
+          </div>
         </div>
+
         <div class="flex items-center gap-2">
-          <span id="player2Chip" class="player-chip">P2</span>
-          <span id="player2Score" class="font-semibold">0</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-gray-300">ペア数</span>
-          <span id="pairCountLabel" class="badge"></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-gray-300">手数</span>
-          <span id="movesDisplay" class="font-semibold">0</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-gray-300">揃ったペア</span>
-          <span id="matchesDisplay" class="font-semibold">0 / 0</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-gray-300">経過時間</span>
-          <span id="timeDisplay" class="font-semibold">00:00</span>
+          <span id="matchesDisplay" class="font-mono text-gray-300">0/0</span>
+          <span id="timeDisplay" class="font-mono text-gray-300 w-10 text-right">00:00</span>
         </div>
       </div>
     </div>
 
-    <div id="playArea" class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-black p-3 sm:p-5 shadow-xl transition-colors">
-      <div id="cardGrid" class="card-grid"></div>
+    <div id="playAreaWrapper" class="flex-grow min-h-0 relative rounded-lg border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-black shadow-inner overflow-hidden">
+      <div id="playArea" class="absolute inset-0 p-1 flex items-center justify-center bg-cover bg-center transition-colors">
+        <div id="cardGrid" class="card-grid"></div>
+      </div>
     </div>
 
-    <div id="messageArea" class="mt-4 bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-sm min-h-[72px]"></div>
+    <div id="messageArea" class="mt-2 bg-slate-900/80 border border-slate-700 rounded p-2 text-xs text-center text-gray-200 shrink-0 min-h-[36px] flex items-center justify-center">
+      ゲーム開始！
+    </div>
   </div>
 
   <div id="menuOverlay" class="menu-overlay" onclick="toggleMenu(false)"></div>
   <div id="menuPanel" class="menu-panel">
     <div class="flex items-start justify-between mb-3">
-      <div>
-        <h3 class="text-lg font-bold">メニュー</h3>
-        <p class="text-xs text-gray-400">ペア数やリスタートなどはこちらから</p>
-      </div>
-      <button onclick="toggleMenu(false)" class="text-gray-300 hover:text-white">✕</button>
+      <h3 class="text-base font-bold">設定</h3>
+      <button onclick="toggleMenu(false)" class="text-gray-300 p-1">✕</button>
     </div>
-
-    <div class="space-y-3">
-      <div class="bg-slate-900/70 rounded-lg p-3 border border-slate-700">
-        <div class="flex justify-between text-sm mb-2">
-          <span>ペア数</span>
-          <span id="pairCountLabelMenu" class="badge"></span>
+    <div class="space-y-4">
+      <div class="bg-slate-900/70 rounded p-2 border border-slate-700">
+        <div class="flex justify-between text-xs mb-2 text-gray-300">
+          <span>ペア数: <span id="pairCountLabelMenu" class="font-bold text-emerald-400">8</span></span>
         </div>
-        <input id="pairCountInput" type="range" min="4" max="24" value="8" class="w-full accent-emerald-400"
-          oninput="handlePairCountChange(this.value)" />
+        <input id="pairCountInput" type="range" min="4" max="24" value="8" class="w-full accent-emerald-400 h-6" oninput="handlePairCountChange(this.value)" />
       </div>
-
-      <div class="bg-slate-900/70 rounded-lg p-3 border border-slate-700 space-y-2">
-        <button onclick="restartGame(); toggleMenu(false);" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded">リスタート</button>
-        <button onclick="revealAll(); toggleMenu(false);" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded">1秒だけ全オープン</button>
-        <p class="text-xs text-gray-400">最初のカードをめくるとタイマーが動きます。</p>
-      </div>
+      <button onclick="restartGame(); toggleMenu(false);" class="w-full bg-emerald-600 text-white py-2 rounded text-sm font-bold shadow">リスタート</button>
+      <button onclick="revealAll(); toggleMenu(false);" class="w-full bg-slate-700 text-white py-2 rounded text-sm shadow">一瞬だけ見る</button>
     </div>
   </div>
 
   <div id="settingsModal" class="modal">
     <div class="modal-content">
-      <div class="flex items-start justify-between mb-4">
-        <div>
-          <h2 class="text-xl font-bold">カード画像をカスタマイズ</h2>
-          <p class="text-sm text-gray-400">URLを入れるか、画像ファイルをアップロードできます。空欄にするとデフォルトの絵文字に戻ります。</p>
-        </div>
-        <button onclick="closeSettings()" class="text-gray-300 hover:text-white">✕</button>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-base font-bold">画像カスタマイズ</h2>
+        <button onclick="closeSettings()" class="text-gray-300">✕</button>
       </div>
-
-      <div class="space-y-4" id="imageSettingsList"></div>
-
+      <div class="space-y-3" id="imageSettingsList"></div>
       <div class="flex justify-end gap-2 mt-4">
-        <button onclick="closeSettings()" class="px-4 py-2 rounded bg-slate-700 hover:bg-slate-600">キャンセル</button>
-        <button onclick="saveSettings()" class="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-500">保存して反映</button>
+        <button onclick="saveSettings()" class="px-4 py-2 rounded bg-emerald-600 text-white text-sm font-bold">保存</button>
       </div>
-      <div class="text-right text-xs text-amber-300 mt-2">大きすぎる画像は保存できない場合があります。</div>
     </div>
   </div>
 
   <script>
-    const DEFAULT_FACES = [
-      "🍎",
-      "🍇",
-      "🍋",
-      "🍒",
-      "🍓",
-      "🍍",
-      "🥝",
-      "🍉",
-      "🥕",
-      "🥑",
-      "🥨",
-      "🍣",
-      "🎲",
-      "🎧",
-      "🧩",
-      "🚀"
-    ];
+    const DEFAULT_FACES = ["🍎","🍇","🍋","🍒","🍓","🍍","🥝","🍉","🥕","🥑","🥨","🍣","🎲","🎧","🧩","🚀","🌵","🌻","🎸","🚗","💎","🎈","🐶","🐱"];
     const MAX_PAIRS = 24;
     const STORAGE_KEY = "memoryCustomImagesV1";
-    const PLAYERS = ["プレイヤー1", "プレイヤー2"];
+    const PLAYERS = ["Player 1", "Player 2"];
 
     let pairCount = 8;
     let deck = [];
@@ -357,22 +316,22 @@
     let customImages = {};
     let currentPlayer = 0;
     let scores = [0, 0];
-    let movesPerPlayer = [0, 0];
 
+    // 初期ロード
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        customImages = JSON.parse(saved);
-      }
-    } catch (e) {
-      console.warn("画像設定の読み込みに失敗しました", e);
-      customImages = {};
-    }
+      if (saved) customImages = JSON.parse(saved);
+    } catch (e) { customImages = {}; }
 
     window.onload = () => {
       document.getElementById("pairCountInput").value = pairCount;
       updatePairLabel();
       restartGame();
+      // ウィンドウサイズ変更時に再計算
+      window.addEventListener("resize", () => {
+        // iOSのアドレスバー伸縮対策：少し遅延させる
+        setTimeout(calculateGridMetrics, 100);
+      });
     };
 
     function handlePairCountChange(value) {
@@ -382,11 +341,9 @@
     }
 
     function updatePairLabel() {
-      const label = document.getElementById("pairCountLabel");
-      const menuLabel = document.getElementById("pairCountLabelMenu");
-      label.textContent = `${pairCount} ペア`;
-      if (menuLabel) menuLabel.textContent = `${pairCount} ペア`;
-      document.getElementById("matchesDisplay").textContent = `${matches} / ${pairCount}`;
+      const label = document.getElementById("pairCountLabelMenu");
+      if(label) label.textContent = pairCount;
+      document.getElementById("matchesDisplay").textContent = `${matches}/${pairCount}`;
     }
 
     function restartGame() {
@@ -395,15 +352,21 @@
       moves = 0;
       matches = 0;
       scores = [0, 0];
-      movesPerPlayer = [0, 0];
       currentPlayer = 0;
       flipped = [];
       lockBoard = false;
+      document.getElementById("timeDisplay").textContent = "00:00";
+      
       buildDeck();
       renderGrid();
       updateStats();
-      setMessage(`${PLAYERS[currentPlayer]} のターンです。カードをめくってスタート！`);
-      revealAll(true);
+      setMessage(`${PLAYERS[currentPlayer]} の番です`);
+      
+      // レイアウト計算のための遅延実行
+      setTimeout(() => {
+        calculateGridMetrics();
+        revealAll(true);
+      }, 50);
     }
 
     function buildDeck() {
@@ -411,24 +374,79 @@
       for (let i = 1; i <= pairCount; i++) {
         faces.push({ key: `card_${i}`, label: DEFAULT_FACES[(i - 1) % DEFAULT_FACES.length] });
       }
-
       deck = faces.flatMap((face) => [
         { id: `${face.key}-a`, key: face.key, label: face.label, matched: false, flipped: false, matchedBy: null },
         { id: `${face.key}-b`, key: face.key, label: face.label, matched: false, flipped: false, matchedBy: null },
       ]);
-
-      // シャッフル (Fisher–Yates)
+      // Shuffle
       for (let i = deck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [deck[i], deck[j]] = [deck[j], deck[i]];
       }
+    }
 
-      updateCardSizing();
+    // ★重要: 画面サイズに合わせて最適な列数とカードサイズを計算するロジック
+    function calculateGridMetrics() {
+      const container = document.getElementById("playArea");
+      if (!container) return;
+
+      const totalCards = pairCount * 2;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      const gap = 4; // カード間の隙間(px)を小さく設定
+      
+      let bestCols = 4;
+      let bestCardArea = 0;
+      let bestWidth = 0;
+      let bestHeight = 0;
+
+      // 可能な列数パターンをシミュレーションして、カード面積が最大になるものを探す
+      // 2列〜8列程度で探索
+      for (let cols = 3; cols <= 10; cols++) {
+        const rows = Math.ceil(totalCards / cols);
+        
+        // ギャップ分を引いて利用可能な幅と高さを計算
+        const availW = w - (gap * (cols - 1));
+        const availH = h - (gap * (rows - 1));
+        
+        // 1枚あたりの最大幅と高さ
+        const cardW_limit = availW / cols;
+        const cardH_limit = availH / rows;
+
+        // アスペクト比 (3:4 = 0.75) を維持しつつサイズ決定
+        // 幅基準で高さを出す
+        let cardW = cardW_limit;
+        let cardH = cardW / 0.75;
+
+        // 高さが溢れるなら高さ基準に合わせる
+        if (cardH > cardH_limit) {
+          cardH = cardH_limit;
+          cardW = cardH * 0.75;
+        }
+
+        const area = cardW * cardH;
+        if (area > bestCardArea) {
+          bestCardArea = area;
+          bestCols = cols;
+          bestWidth = cardW;
+          bestHeight = cardH;
+        }
+      }
+
+      // CSS変数を更新
+      const root = document.documentElement;
+      root.style.setProperty("--cols", bestCols);
+      // 安全マージンとして少しだけ小さくする(0.5px)
+      root.style.setProperty("--card-width", `${bestWidth - 1}px`);
+      root.style.setProperty("--card-height", `${bestHeight - 1}px`);
+      root.style.setProperty("--gap", `${gap}px`);
     }
 
     function renderGrid() {
       const grid = document.getElementById("cardGrid");
       grid.innerHTML = "";
+      
+      applyBoardImage();
 
       deck.forEach((card, index) => {
         const classes = ["card"];
@@ -438,6 +456,7 @@
           if (card.matchedBy === 0) classes.push("p1-win");
           if (card.matchedBy === 1) classes.push("p2-win");
         }
+        
         const cardEl = document.createElement("div");
         cardEl.className = classes.join(" ");
         cardEl.onclick = () => handleCardClick(index);
@@ -445,7 +464,7 @@
         const inner = document.createElement("div");
         inner.className = "card-inner";
 
-        const back = createFace("back", { key: "card_back", label: "?" });
+        const back = createFace("back", { key: "card_back", label: "" }); // 裏面は文字なし
         const front = createFace("front", { key: card.key, label: card.label });
 
         inner.appendChild(back);
@@ -453,32 +472,25 @@
         cardEl.appendChild(inner);
         grid.appendChild(cardEl);
       });
-
-      applyBoardImage();
-      updateCardSizing();
     }
 
     function createFace(side, data) {
       const face = document.createElement("div");
       face.className = `card-face card-${side}`;
-      const url = getImage(data.key);
-
+      const url = customImages[data.key];
       if (url) {
         const img = document.createElement("img");
         img.src = url;
-        img.alt = "card";
         face.appendChild(img);
       } else {
-        const span = document.createElement("span");
-        span.textContent = data.label;
-        face.appendChild(span);
+        // 絵文字の場合
+        if(side === "front") {
+          const span = document.createElement("span");
+          span.textContent = data.label;
+          face.appendChild(span);
+        }
       }
-
       return face;
-    }
-
-    function getImage(key) {
-      return customImages[key] || null;
     }
 
     function handleCardClick(index) {
@@ -490,16 +502,16 @@
 
       card.flipped = true;
       flipped.push(index);
-      renderGrid();
+      renderGrid(); // CSSクラス更新
 
       if (flipped.length === 2) {
         moves++;
-        movesPerPlayer[currentPlayer]++;
         const [a, b] = flipped;
         const first = deck[a];
         const second = deck[b];
 
         if (first.key === second.key) {
+          // Match
           first.matched = true;
           second.matched = true;
           first.matchedBy = currentPlayer;
@@ -507,20 +519,23 @@
           matches++;
           scores[currentPlayer]++;
           flipped = [];
+          
           updateStats();
+          
           if (matches === pairCount) {
             stopTimer();
-            const timeText = document.getElementById("timeDisplay").textContent;
-            const result =
-              scores[0] === scores[1]
-                ? "引き分け！"
-                : `${scores[0] > scores[1] ? PLAYERS[0] : PLAYERS[1]} の勝ち！`;
-            setMessage(`${result} 手数: ${moves} / 時間: ${timeText}`);
+            let result = scores[0] === scores[1] ? "引き分け！" : `${PLAYERS[scores[0]>scores[1]?0:1]} の勝利！`;
+            setMessage(result);
           } else {
-            setMessage(`${PLAYERS[currentPlayer]} がペアを揃えました！ もう一度どうぞ。`);
+            setMessage("ナイス！ もう一度！");
           }
+          // マッチした際もクラス更新のために再描画
+          renderGrid();
+
         } else {
+          // No Match
           lockBoard = true;
+          setMessage("残念...");
           setTimeout(() => {
             first.flipped = false;
             second.flipped = false;
@@ -529,110 +544,56 @@
             currentPlayer = currentPlayer === 0 ? 1 : 0;
             renderGrid();
             updateStats();
-            setMessage(`${PLAYERS[currentPlayer]} のターンです。`);
-          }, 900);
+            setMessage(`${PLAYERS[currentPlayer]} の番です`);
+          }, 800);
         }
-
         updateStats();
       }
     }
 
     function updateStats() {
-      document.getElementById("movesDisplay").textContent = moves;
-      document.getElementById("matchesDisplay").textContent = `${matches} / ${pairCount}`;
+      document.getElementById("matchesDisplay").textContent = `${matches}/${pairCount}`;
       document.getElementById("player1Score").textContent = scores[0];
       document.getElementById("player2Score").textContent = scores[1];
+      
       const p1Chip = document.getElementById("player1Chip");
       const p2Chip = document.getElementById("player2Chip");
-      if (p1Chip && p2Chip) {
-        p1Chip.classList.toggle("active", currentPlayer === 0);
-        p2Chip.classList.toggle("active", currentPlayer === 1);
-      }
+      
+      // シンプルな色変更
+      p1Chip.className = currentPlayer === 0 ? "text-xs text-emerald-400 font-bold underline" : "text-xs text-gray-500 font-bold";
+      p2Chip.className = currentPlayer === 1 ? "text-xs text-blue-400 font-bold underline" : "text-xs text-gray-500 font-bold";
+
       const turnLabel = document.getElementById("currentPlayerLabel");
-      if (turnLabel) {
-        turnLabel.textContent = `${PLAYERS[currentPlayer]} のターン`;
-        turnLabel.classList.toggle("active", true);
-      }
-      updatePairLabel();
+      turnLabel.textContent = `${PLAYERS[currentPlayer]} の番`;
+      turnLabel.style.color = currentPlayer === 0 ? "#34d399" : "#60a5fa";
+      turnLabel.style.borderColor = currentPlayer === 0 ? "#34d399" : "#60a5fa";
     }
-
-    function updateCardSizing() {
-      const root = document.documentElement;
-      const w = window.innerWidth || 1024;
-      let size = "110px";
-      let gap = "12px";
-      let aspect = "3 / 4";
-
-      if (pairCount > 20) {
-        size = w < 480 ? "48px" : w < 640 ? "58px" : "70px";
-        gap = w < 480 ? "5px" : w < 640 ? "7px" : "8px";
-        aspect = "3 / 3.4"; // height about 1.13x width to squeeze rows
-      } else if (pairCount > 16) {
-        size = w < 480 ? "64px" : "82px";
-        gap = w < 480 ? "7px" : "9px";
-        aspect = "3 / 3.6";
-      } else if (pairCount > 12) {
-        size = "95px";
-        gap = "10px";
-      }
-      root.style.setProperty("--card-min", size);
-      root.style.setProperty("--card-gap", gap);
-      root.style.setProperty("--card-aspect", aspect);
-
-      const grid = document.getElementById("cardGrid");
-      if (grid) {
-        grid.style.minHeight = "0";
-      }
-      const playArea = document.getElementById("playArea");
-      if (playArea) {
-        playArea.style.minHeight = "0";
-      }
-    }
-
-    window.addEventListener("resize", () => updateCardSizing());
 
     function startTimer() {
       startTime = Date.now();
       timerId = setInterval(() => {
         const diff = Date.now() - startTime;
-        document.getElementById("timeDisplay").textContent = formatTime(diff);
+        const sec = Math.floor(diff / 1000);
+        const m = String(Math.floor(sec / 60)).padStart(2, "0");
+        const s = String(sec % 60).padStart(2, "0");
+        document.getElementById("timeDisplay").textContent = `${m}:${s}`;
       }, 500);
     }
-
     function stopTimer() {
       if (timerId) clearInterval(timerId);
       timerId = null;
     }
 
-    function formatTime(ms) {
-      const totalSeconds = Math.floor(ms / 1000);
-      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
-      const seconds = String(totalSeconds % 60).padStart(2, "0");
-      return `${minutes}:${seconds}`;
-    }
-
     function revealAll(autoClose = false) {
       if (lockBoard) return;
       lockBoard = true;
-      deck.forEach((c) => (c.flipped = true));
+      deck.forEach(c => c.flipped = true);
       renderGrid();
-      if (autoClose) {
-        setTimeout(() => {
-          deck.forEach((c) => {
-            if (!c.matched) c.flipped = false;
-          });
-          lockBoard = false;
-          renderGrid();
-        }, 900);
-      } else {
-        setTimeout(() => {
-          deck.forEach((c) => {
-            if (!c.matched) c.flipped = false;
-          });
-          lockBoard = false;
-          renderGrid();
-        }, 1000);
-      }
+      setTimeout(() => {
+        deck.forEach(c => { if(!c.matched) c.flipped = false; });
+        lockBoard = false;
+        renderGrid();
+      }, autoClose ? 800 : 1000);
     }
 
     function setMessage(msg) {
@@ -642,145 +603,74 @@
     function applyBoardImage() {
       const area = document.getElementById("playArea");
       if (customImages.board) {
-        area.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.75)), url(${customImages.board})`;
-        area.style.backgroundSize = "cover";
-        area.style.backgroundPosition = "center";
+        area.style.backgroundImage = `url(${customImages.board})`;
       } else {
         area.style.backgroundImage = "";
       }
     }
 
     function toggleMenu(show) {
-      const panel = document.getElementById("menuPanel");
-      const overlay = document.getElementById("menuOverlay");
-      if (!panel || !overlay) return;
-      if (show) {
-        panel.classList.add("active");
-        overlay.classList.add("active");
-      } else {
-        panel.classList.remove("active");
-        overlay.classList.remove("active");
-      }
+      const p = document.getElementById("menuPanel");
+      const o = document.getElementById("menuOverlay");
+      if(show) { p.classList.add("active"); o.classList.add("active"); }
+      else { p.classList.remove("active"); o.classList.remove("active"); }
     }
 
-    // 設定モーダル周り
-    function dataURItoBlob(dataURI) {
-      const byteString = atob(dataURI.split(",")[1]);
-      const mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      return new Blob([ab], { type: mimeString });
-    }
-
-    function createUrlInput(key, fileInput) {
-      const urlInput = document.createElement("input");
-      urlInput.type = "text";
-      urlInput.placeholder = "画像URL (例: https://...)";
-      urlInput.dataset.key = key;
-      urlInput.className = "w-full p-2 rounded bg-slate-700 text-white text-sm border border-slate-600";
-      urlInput.value = customImages[key] || "";
-
-      urlInput.oninput = () => {
-        if (urlInput.value.trim()) {
-          fileInput.disabled = true;
-        } else {
-          fileInput.disabled = false;
-        }
-      };
-
-      return urlInput;
-    }
-
-    function createFileUploader(key, urlInput) {
-      const fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.accept = "image/*";
-      fileInput.className = "w-full text-sm text-gray-300";
-
-      if (urlInput.value.trim()) {
-        fileInput.disabled = true;
-      }
-
-      fileInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            urlInput.value = event.target.result;
-            urlInput.dispatchEvent(new Event("input"));
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-
-      return fileInput;
-    }
-
+    /* 画像設定関連 (簡易版) */
     function openSettings() {
       const list = document.getElementById("imageSettingsList");
       list.innerHTML = "";
-
-      const boardGroup = document.createElement("div");
-      boardGroup.className = "config-item";
-      boardGroup.innerHTML = `<div class="config-group-title">プレイエリア背景</div>`;
-      const boardUrlInput = createUrlInput("board", document.createElement("input"));
-      boardUrlInput.placeholder = "背景画像URL";
-      const boardFileInput = createFileUploader("board", boardUrlInput);
-      boardGroup.appendChild(boardUrlInput);
-      boardGroup.appendChild(boardFileInput);
-      list.appendChild(boardGroup);
-
-      const backGroup = document.createElement("div");
-      backGroup.className = "config-item";
-      backGroup.innerHTML = `<div class="config-group-title">カード裏面</div>`;
-      const backUrlInput = createUrlInput("card_back", document.createElement("input"));
-      backUrlInput.placeholder = "カード裏面URL";
-      const backFileInput = createFileUploader("card_back", backUrlInput);
-      backGroup.appendChild(backUrlInput);
-      backGroup.appendChild(backFileInput);
-      list.appendChild(backGroup);
-
-      for (let i = 1; i <= MAX_PAIRS; i++) {
-        const key = `card_${i}`;
-        const group = document.createElement("div");
-        group.className = "config-item";
-        group.innerHTML = `<div class="config-group-title">ペア ${i}</div>`;
-
-        const urlInput = createUrlInput(key, document.createElement("input"));
-        const fileInput = createFileUploader(key, urlInput);
-        group.appendChild(urlInput);
-        group.appendChild(fileInput);
-        list.appendChild(group);
+      // 背景
+      addSettingItem(list, "プレイエリア背景", "board");
+      // 裏面
+      addSettingItem(list, "カード裏面", "card_back");
+      // 各カード
+      for(let i=1; i<=pairCount; i++) {
+        addSettingItem(list, `ペア ${i}`, `card_${i}`);
       }
-
       document.getElementById("settingsModal").classList.add("active");
     }
-
     function closeSettings() {
       document.getElementById("settingsModal").classList.remove("active");
+    }
+    function addSettingItem(container, title, key) {
+      const div = document.createElement("div");
+      div.className = "config-item";
+      div.innerHTML = `<div class="text-xs font-bold mb-1">${title}</div>`;
+      
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "画像URL";
+      input.value = customImages[key] || "";
+      input.className = "w-full p-1 rounded bg-slate-700 text-white text-xs mb-1";
+      input.dataset.key = key;
+
+      const fileBtn = document.createElement("input");
+      fileBtn.type = "file";
+      fileBtn.accept = "image/*";
+      fileBtn.className = "text-xs text-gray-400";
+      fileBtn.onchange = (e) => {
+        const file = e.target.files[0];
+        if(file) {
+          const r = new FileReader();
+          r.onload = (ev) => { input.value = ev.target.result; };
+          r.readAsDataURL(file);
+        }
+      };
+
+      div.appendChild(input);
+      div.appendChild(fileBtn);
+      container.appendChild(div);
     }
 
     function saveSettings() {
       const inputs = document.querySelectorAll('#imageSettingsList input[type="text"]');
-      inputs.forEach((input) => {
-        const key = input.dataset.key;
-        const val = input.value.trim();
-        if (val) {
-          customImages[key] = val;
-        } else {
-          delete customImages[key];
-        }
+      inputs.forEach(inp => {
+        const val = inp.value.trim();
+        if(val) customImages[inp.dataset.key] = val;
+        else delete customImages[inp.dataset.key];
       });
-
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(customImages));
-      } catch (e) {
-        console.error("画像設定を保存できませんでした。サイズを小さくするかURL指定にしてください。", e);
-      }
-
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customImages));
       closeSettings();
       renderGrid();
     }
